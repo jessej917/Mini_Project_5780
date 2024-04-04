@@ -19,6 +19,9 @@ void SystemClock_Config(void);
 void Gyroscope();
 void GyroInit();
 
+int16_t Xaxis;
+int16_t Yaxis;
+
 /* -------------------------------------------------------------------------------------------------------------
  *  Miscellaneous Core Functions
  *  -------------------------------------------------------------------------------------------------------------
@@ -85,7 +88,9 @@ void HAL_SYSTICK_Callback(void) {
 volatile uint32_t encoder_count = 0;
 
 int main(int argc, char* argv[]) {
-
+	Xaxis = 0;
+	Yaxis = 0;
+	
 	debouncer = 0;                          // Initialize global variables
 	HAL_Init();															// Initialize HAL
 	LED_init();                             // Initialize LED's
@@ -101,7 +106,7 @@ int main(int argc, char* argv[]) {
 			//GPIOC->ODR ^= GPIO_ODR_9;           // Toggle green LED (heartbeat)
 			encoder_count = TIM2->CNT;
 			Gyroscope();
-			HAL_Delay(128);                      // Delay 1/8 second
+			HAL_Delay(1);                      // Delay 1/8 second
 	}
 }
 
@@ -124,12 +129,13 @@ void Gyroscope() {
 
 	GPIOC->ODR &= ~(GPIO_ODR_7 | GPIO_ODR_6 | GPIO_ODR_8 |
 									GPIO_ODR_9);  // Reset the ODR bits for LEDs
-
-	if (Yaxis > threshold)
+	int fake = 300;
+	Xaxis -= 20;
+	if (Xaxis > fake)
 	{
 		GPIOC->ODR |= GPIO_ODR_6;  // Red LED for positive Y
 	}
-	else if (Yaxis < -threshold)
+	else if (Xaxis < -fake)
 	{
 		GPIOC->ODR |= GPIO_ODR_7;  // Blue LED for negative Y
 	}
@@ -146,10 +152,7 @@ void Gyroscope() {
 	//HAL_Delay(500);
 }
 
-void GyroInit() {
-	Xaxis = 0;
-	Yaxis = 0;
-	
+void GyroInit() {	
 	/* Configure the system clock */
 	SystemClock_Config();
 	// Enable GPIOB clock

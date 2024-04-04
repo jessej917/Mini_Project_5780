@@ -7,15 +7,12 @@
 
 volatile int16_t error_integral = 0;    // Integrated error signal
 volatile uint8_t duty_cycle = 0;    	// Output PWM duty cycle
-volatile int16_t target_rpm = 0;    	// Desired speed target
+volatile int16_t target_rpm = 80;    	// Desired speed target
 volatile int16_t motor_speed = 0;   	// Measured motor speed
 volatile int8_t adc_value = 0;      	// ADC measured motor current
 volatile int16_t error = 0;         	// Speed error signal
 volatile uint8_t Kp = 10;            	// Proportional gain
-volatile uint8_t Ki = 5;            	// Integral gain
-
-extern int16_t Xaxis;
-extern int16_t Yaxis;
+volatile uint8_t Ki = 1;            	// Integral gain
 
 // Sets up the entire motor drive system
 void motor_init(void) {
@@ -37,11 +34,12 @@ void pwm_init(void) {
 
     // Set up a PA5, PA6 as GPIO output pins for motor direction control
     GPIOA->MODER &= 0xFFFFC3FF; // clear PA5, PA6 bits,
-    GPIOA->MODER |= (1 << 10) | (1 << 12);
+    GPIOA->MODER |= (1 << 10) | (1 << 16);
     
     //Initialize one direction pin to high, the other low
     GPIOA->ODR |= (1 << 5);
-    GPIOA->ODR &= ~(1 << 6);
+		GPIOA->ODR &= ~(1 << 8);
+    //GPIOA->ODR &= ~(1 << 6);
 
     // Set up PWM timer
     RCC->APB1ENR |= RCC_APB1ENR_TIM14EN;
@@ -164,7 +162,19 @@ void PI_update(void) {
     
     /// TODO: calculate error signal and write to "error" variable
 	//error = 2*target_rpm-motor_speed;        // Previous
-	error = 2*Xaxis-motor_speed;
+	Xaxis += 100;
+	if((Xaxis < 300 && Xaxis > -300)) {
+		Xaxis = 0;
+	}
+	if(Xaxis > 0) {
+		GPIOA->ODR &= ~(1 << 8);
+		GPIOA->ODR |= (1 << 5);
+	} else if(Xaxis < 0) {
+		GPIOA->ODR &= ~(1 << 5);
+		GPIOA->ODR |= (1 << 8);
+	}
+	
+	error = 2*Xaxis/10;
     
     /* Hint: Remember that your calculated motor speed may not be directly in RPM!
      *       You will need to convert the target or encoder speeds to the same units.
@@ -215,10 +225,10 @@ void PI_update(void) {
 		 
      
      /// TODO: Clamp the output value between 0 and 100 
-		 if(output > 100) {
-			 output = 100;
-		 } else if(output < 0) {
-			 output = 0;
+		 if(output > 50) {
+			 output = 50;
+		 } else if(output < -50) {
+			 output = -50;
 		 }
     
     pwm_setDutyCycle(output);
