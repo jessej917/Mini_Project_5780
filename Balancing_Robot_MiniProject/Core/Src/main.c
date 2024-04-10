@@ -135,7 +135,7 @@ void Gyroscope() {
 	{
 		GPIOC->ODR |= GPIO_ODR_6;  // Red LED for positive Y
 	}
-	else if (Xaxis < -fake)
+	else if (Xaxis < -fake) 
 	{
 		GPIOC->ODR |= GPIO_ODR_7;  // Blue LED for negative Y
 	}

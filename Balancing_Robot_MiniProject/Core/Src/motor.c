@@ -11,8 +11,8 @@ volatile int16_t target_rpm = 80;    	// Desired speed target
 volatile int16_t motor_speed = 0;   	// Measured motor speed
 volatile int8_t adc_value = 0;      	// ADC measured motor current
 volatile int16_t error = 0;         	// Speed error signal
-volatile uint8_t Kp = 10;            	// Proportional gain
-volatile uint8_t Ki = 1;            	// Integral gain
+volatile uint8_t Kp = 5;            	// Proportional gain
+volatile uint8_t Ki = 5;            	// Integral gain
 
 // Sets up the entire motor drive system
 void motor_init(void) {
@@ -162,19 +162,20 @@ void PI_update(void) {
     
     /// TODO: calculate error signal and write to "error" variable
 	//error = 2*target_rpm-motor_speed;        // Previous
-	Xaxis += 100;
-	if((Xaxis < 300 && Xaxis > -300)) {
-		Xaxis = 0;
-	}
-	if(Xaxis > 0) {
+	Yaxis += 00;
+	/*
+	if((Yaxis < 100 && Yaxis > -100)) {
+		Yaxis = 0;
+	}*/
+	if(Yaxis < 0) {
 		GPIOA->ODR &= ~(1 << 8);
 		GPIOA->ODR |= (1 << 5);
-	} else if(Xaxis < 0) {
+	} else if(Yaxis > 0) {
 		GPIOA->ODR &= ~(1 << 5);
 		GPIOA->ODR |= (1 << 8);
 	}
 	
-	error = 2*Xaxis/10;
+	error = 2*Yaxis/10;
     
     /* Hint: Remember that your calculated motor speed may not be directly in RPM!
      *       You will need to convert the target or encoder speeds to the same units.
@@ -225,10 +226,10 @@ void PI_update(void) {
 		 
      
      /// TODO: Clamp the output value between 0 and 100 
-		 if(output > 50) {
-			 output = 50;
-		 } else if(output < -50) {
-			 output = -50;
+		 if(output > 100) {
+			 output = 100;
+		 } else if(output < -100) {
+			 output = -100;
 		 }
     
     pwm_setDutyCycle(output);
