@@ -5,14 +5,14 @@
 #include "motor.h"
 #include "main.h"
 
-volatile int16_t error_integral = 0;    // Integrated error signal
+volatile int error_integral = 0;    // Integrated error signal
 volatile uint8_t duty_cycle = 0;    	// Output PWM duty cycle
 volatile int16_t target_rpm = 80;    	// Desired speed target
 volatile int16_t motor_speed = 0;   	// Measured motor speed
 volatile int8_t adc_value = 0;      	// ADC measured motor current
-volatile int16_t error = 0;         	// Speed error signal
-volatile uint8_t Kp = 5;            	// Proportional gain
-volatile uint8_t Ki = 5;            	// Integral gain
+volatile int error = 0;         	// Speed error signal
+volatile uint8_t Kp = 1;            	// Proportional gain
+volatile uint8_t Ki = 1;            	// Integral gain
 
 // Sets up the entire motor drive system
 void motor_init(void) {
@@ -167,15 +167,10 @@ void PI_update(void) {
 	if((Yaxis < 100 && Yaxis > -100)) {
 		Yaxis = 0;
 	}*/
-	if(Yaxis < 0) {
-		GPIOA->ODR &= ~(1 << 8);
-		GPIOA->ODR |= (1 << 5);
-	} else if(Yaxis > 0) {
-		GPIOA->ODR &= ~(1 << 5);
-		GPIOA->ODR |= (1 << 8);
-	}
 	
-	error = 2*Yaxis/10;
+	
+	error = Yaxis;
+	
     
     /* Hint: Remember that your calculated motor speed may not be directly in RPM!
      *       You will need to convert the target or encoder speeds to the same units.
@@ -190,7 +185,7 @@ void PI_update(void) {
 		
     /// TODO: Clamp the value of the integral to a limited positive range
     if(error_integral > 3200) {
-			error_integral = 3200;
+			//error_integral = 3200;
 		}
 		
 		
@@ -203,8 +198,18 @@ void PI_update(void) {
     
     /// TODO: Calculate proportional portion, add integral and write to "output" variable
     
-    int16_t output = Kp*error + Ki*error_integral; // Change this!
-    
+    int output = Kp*error + Ki*error_integral; // Change this!
+		Xaxis = output;
+
+		if(output < 0) {
+			GPIOA->ODR &= ~(1 << 8);
+			GPIOA->ODR |= (1 << 5);
+		} else if(output > 0) {
+			GPIOA->ODR &= ~(1 << 5);
+			GPIOA->ODR |= (1 << 8);
+		}
+		
+		
     /* Because the calculated values for the PI controller are significantly larger than 
      * the allowable range for duty cycle, you'll need to divide the result down into 
      * an appropriate range. (Maximum integral clamp / X = 100% duty cycle)
@@ -226,10 +231,14 @@ void PI_update(void) {
 		 
      
      /// TODO: Clamp the output value between 0 and 100 
-		 if(output > 100) {
-			 output = 100;
-		 } else if(output < -100) {
-			 output = -100;
+		 
+		 if(output < 0) {
+			 output *= -1;
+		 }
+		 if(output > 50) {
+			 output = 50;
+		 } else if(output < -50) {
+			 output = -50;
 		 }
     
     pwm_setDutyCycle(output);

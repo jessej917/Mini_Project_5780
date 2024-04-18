@@ -10,6 +10,7 @@
  *  -------------------------------------------------------------------------------------------------------------
  */
 volatile uint32_t debouncer;
+int angle = 0;
 
 
 void I2C_WriteReg(uint16_t deviceAdd, uint8_t regAdd, uint8_t data);
@@ -19,8 +20,8 @@ void SystemClock_Config(void);
 void Gyroscope();
 void GyroInit();
 
-int16_t Xaxis;
-int16_t Yaxis;
+int Xaxis;
+int Yaxis;
 
 /* -------------------------------------------------------------------------------------------------------------
  *  Miscellaneous Core Functions
@@ -99,7 +100,7 @@ int main(int argc, char* argv[]) {
 	motor_init();                           // Initialize motor code
 	
 	GyroInit();
-	
+	angle = 0;
 	
 
 	while (1) {
@@ -113,29 +114,39 @@ int main(int argc, char* argv[]) {
 
 
 void Gyroscope() {
-	int32_t threshold = 1300;
+	int32_t threshold = 0;
 	
 	I2C_SetRegAdd(0x69, 0x28);
 	int8_t xlow = I2C_ReadReg(0x69);
 	I2C_SetRegAdd(0x69, 0x29);
 	int8_t xhigh = I2C_ReadReg(0x69);
-	Xaxis = ((int16_t)xhigh << 8) | (uint8_t)xlow;
+	//Xaxis = ((int16_t)xhigh << 8) | (uint8_t)xlow;
 
 	I2C_SetRegAdd(0x69, 0x2A);
 	int8_t ylow = I2C_ReadReg(0x69);
 	I2C_SetRegAdd(0x69, 0x2B);
 	int8_t yhigh = I2C_ReadReg(0x69);
 	Yaxis = ((int16_t)yhigh << 8) | (uint8_t)ylow;
+	
+	
+	if(Xaxis < 0) {
+		GPIOA->ODR &= ~(1 << 8);
+		GPIOA->ODR |= (1 << 5);
+	} else if(Xaxis > 0) {
+		GPIOA->ODR &= ~(1 << 5);
+		GPIOA->ODR |= (1 << 8);
+	}
 
 	GPIOC->ODR &= ~(GPIO_ODR_7 | GPIO_ODR_6 | GPIO_ODR_8 |
 									GPIO_ODR_9);  // Reset the ODR bits for LEDs
-	int fake = 300;
-	Xaxis -= 20;
-	if (Xaxis > fake)
+	angle += Yaxis;
+	int fake = 0;
+	//Xaxis -= 20;
+	if (angle > 0)
 	{
 		GPIOC->ODR |= GPIO_ODR_6;  // Red LED for positive Y
 	}
-	else if (Xaxis < -fake) 
+	else if (angle < 0) 
 	{
 		GPIOC->ODR |= GPIO_ODR_7;  // Blue LED for negative Y
 	}
