@@ -11,8 +11,8 @@ volatile int16_t target_rpm = 80;    	// Desired speed target
 volatile int16_t motor_speed = 0;   	// Measured motor speed
 volatile int8_t adc_value = 0;      	// ADC measured motor current
 volatile int error = 0;         	// Speed error signal
-volatile uint8_t Kp = 1;            	// Proportional gain
-volatile uint8_t Ki = 1;            	// Integral gain
+volatile uint8_t Kp = 5;            	// Proportional gain
+volatile uint8_t Ki = 3;            	// Integral gain
 
 // Sets up the entire motor drive system
 void motor_init(void) {
@@ -197,7 +197,10 @@ void PI_update(void) {
      */
     
     /// TODO: Calculate proportional portion, add integral and write to "output" variable
-    
+    if(error_integral > 0 && error < 0) {
+
+		}
+		
     int output = Kp*error + Ki*error_integral; // Change this!
 		Xaxis = output;
 
@@ -227,7 +230,7 @@ void PI_update(void) {
      */
 
      /// TODO: Divide the output into the proper range for output adjustment
-		 output = output >> 5;
+		 output = output >> 9;
 		 
      
      /// TODO: Clamp the output value between 0 and 100 
@@ -235,10 +238,10 @@ void PI_update(void) {
 		 if(output < 0) {
 			 output *= -1;
 		 }
-		 if(output > 50) {
-			 output = 50;
-		 } else if(output < -50) {
-			 output = -50;
+		 if(output > 100) {
+			 output = 100;
+		 } else if(output < -100) {
+			 output = -100;
 		 }
     
     pwm_setDutyCycle(output);
